@@ -21,8 +21,12 @@ export function likeProductReviews () {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
+    if (typeof id !== 'string') {
+      return res.status(400).json({ error: 'Invalid ID format' })
+    }
+
     try {
-      const review = await db.reviewsCollection.findOne({ _id: id })
+      const review = await db.reviewsCollection.findOne({ _id: String(id) })
       if (!review) {
         return res.status(404).json({ error: 'Not found' })
       }
@@ -33,14 +37,14 @@ export function likeProductReviews () {
       }
 
       await db.reviewsCollection.update(
-        { _id: id },
+        { _id: String(id) },
         { $inc: { likesCount: 1 } }
       )
 
       // Artificial wait for timing attack challenge
       await sleep(150)
       try {
-        const updatedReview: Review = await db.reviewsCollection.findOne({ _id: id })
+        const updatedReview: Review = await db.reviewsCollection.findOne({ _id: String(id) })
         const updatedLikedBy = updatedReview.likedBy
         updatedLikedBy.push(user.data.email)
 
@@ -48,7 +52,7 @@ export function likeProductReviews () {
         challengeUtils.solveIf(challenges.timingAttackChallenge, () => count > 2)
 
         const result = await db.reviewsCollection.update(
-          { _id: id },
+          { _id: String(id) },
           { $set: { likedBy: updatedLikedBy } }
         )
         res.json(result)
